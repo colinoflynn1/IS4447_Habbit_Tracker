@@ -40,8 +40,8 @@ export default function TodayScreen() {
         </View>
 
         <Text style={styles.placeholder}>
-          Logging UI lands in Phase 2. Seeded data is visible, which confirms the
-          database, context, and routing all boot correctly.
+          The daily logging UI is built in Phase 3. This screen currently shows
+          counts pulled from the database so I can confirm everything is wired up.
         </Text>
       </ScrollView>
     </SafeAreaView>

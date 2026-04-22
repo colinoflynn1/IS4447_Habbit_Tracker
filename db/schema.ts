@@ -1,7 +1,6 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-// Users table for the register/login/logout/delete-profile requirement.
-// Passwords are stored as a salted hash, never plaintext.
+// users table for the login requirement. I store a password hash, not the plain password.
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
@@ -9,8 +8,7 @@ export const users = sqliteTable('users', {
   createdAt: text('created_at').notNull(),
 });
 
-// Categories group habits (e.g. Fitness, Health, Learning).
-// name + color + icon covers the brief's "name and colour/icon" requirement.
+// categories group habits. Each one has a name, a colour and an icon.
 export const categories = sqliteTable('categories', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),
@@ -19,43 +17,36 @@ export const categories = sqliteTable('categories', {
   icon: text('icon').notNull(),
 });
 
-// Habits are the things the user is tracking (e.g. "Drink water", "Gym").
-// metricType chooses how the habit is logged:
-//   'boolean' - did it / did not do it on a date (value is always 1)
-//   'count'   - how many times / how much (value is an integer like 8 glasses)
-// unit is an optional display label for count habits (e.g. "glasses", "km").
+// habits are the things the user is tracking.
+// metricType is either 'boolean' (did it or not) or 'count' (how many).
+// unit is optional text for count habits like "glasses" or "minutes".
 export const habits = sqliteTable('habits', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),
   categoryId: integer('category_id').notNull().references(() => categories.id),
   name: text('name').notNull(),
-  metricType: text('metric_type').notNull(), // 'boolean' | 'count'
+  metricType: text('metric_type').notNull(),
   unit: text('unit'),
   createdAt: text('created_at').notNull(),
 });
 
-// Habit logs are the primary records per the brief.
-// Each log has a date, a measurable metric (value), and references a habit
-// (which in turn references a category — satisfying "category reference required").
-// notes is optional per the brief.
+// habit_logs are the main records. Each log has a date, a value and a habit id.
+// value is 1 for boolean habits and the count for count habits.
 export const habitLogs = sqliteTable('habit_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),
   habitId: integer('habit_id').notNull().references(() => habits.id),
-  date: text('date').notNull(), // YYYY-MM-DD — sorts correctly as text
-  value: integer('value').notNull(), // 1 for boolean done, N for count
+  date: text('date').notNull(),
+  value: integer('value').notNull(),
   notes: text('notes'),
 });
 
-// Targets are weekly or monthly goals.
-// habitId nullable so the app can support per-habit OR global/category-level
-// targets later without a schema change. The brief asks for "global or per-category"
-// so leaving habitId nullable and adding categoryId keeps both routes open.
+// targets are weekly or monthly goals for a habit.
 export const targets = sqliteTable('targets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id),
   habitId: integer('habit_id').references(() => habits.id),
   categoryId: integer('category_id').references(() => categories.id),
-  period: text('period').notNull(), // 'weekly' | 'monthly'
+  period: text('period').notNull(),
   amount: integer('amount').notNull(),
 });

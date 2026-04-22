@@ -3,10 +3,8 @@ import { openDatabaseSync } from 'expo-sqlite';
 
 const sqlite = openDatabaseSync('habits.db');
 
-// CREATE TABLE IF NOT EXISTS for every table.
-// This mirrors the lab's approach: the Drizzle migrations folder is the source
-// of truth for production, but having these statements here means the app boots
-// safely on first run without needing a migration step at startup.
+// Create the tables on first run. I am using CREATE TABLE IF NOT EXISTS
+// so the app does not crash if the tables are already there.
 sqlite.execSync(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

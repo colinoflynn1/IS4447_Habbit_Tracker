@@ -7,10 +7,8 @@ import {
   users,
 } from './schema';
 
-// Simple salted hash (same approach used in app/_layout for auth).
-// Node's crypto is not available in RN, so we keep hashing portable.
-// This is a lightweight, deterministic hash intended for a local-only
-// educational app — NOT for production authentication.
+// Small hash function so I am not storing passwords in plain text.
+// Node's crypto is not available in React Native so I kept it simple.
 const seedHash = (password: string): string => {
   let hash = 0;
   const salt = 'habit-tracker-salt';
@@ -22,7 +20,7 @@ const seedHash = (password: string): string => {
   return `h_${Math.abs(hash).toString(16)}`;
 };
 
-// Build a YYYY-MM-DD date string N days before today.
+// Returns a YYYY-MM-DD date string for N days ago.
 const daysAgo = (n: number): string => {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -30,8 +28,8 @@ const daysAgo = (n: number): string => {
 };
 
 export async function seedIfEmpty() {
-  // Only seed when the users table is empty — this guarantees idempotency
-  // and matches the lab's "early return when rows exist" pattern.
+  // Only seed if the users table is empty. This stops duplicate data
+  // every time the app restarts. Same pattern as the students lab.
   const existingUsers = await db.select().from(users);
   if (existingUsers.length > 0) {
     return;
@@ -49,7 +47,7 @@ export async function seedIfEmpty() {
   const [demoUser] = await db.select().from(users);
   const userId = demoUser.id;
 
-  // 2. Categories — name + colour + icon as required by the brief
+  // 2. Categories with name, colour and icon
   await db.insert(categories).values([
     { userId, name: 'Fitness', color: '#0F766E', icon: 'barbell-outline' },
     { userId, name: 'Health', color: '#2563EB', icon: 'water-outline' },
@@ -61,7 +59,7 @@ export async function seedIfEmpty() {
   const catByName = (name: string) =>
     insertedCategories.find((c) => c.name === name)!.id;
 
-  // 3. Habits — mix of boolean (completed/not) and count-based
+  // 3. Habits. Mix of boolean and count so the insights chart has variety.
   await db.insert(habits).values([
     {
       userId,
@@ -109,7 +107,7 @@ export async function seedIfEmpty() {
   const habitByName = (name: string) =>
     insertedHabits.find((h) => h.name === name)!.id;
 
-  // 4. Habit logs — 30 days of varied data so insights/charts look real
+  // 4. Habit logs for the last 30 days so insights and streaks have real data.
   const logs: {
     userId: number;
     habitId: number;
@@ -121,12 +119,12 @@ export async function seedIfEmpty() {
   for (let i = 0; i < 30; i++) {
     const date = daysAgo(i);
 
-    // Gym: 4 sessions per week, skip some days
+    // Gym roughly 4 times a week
     if (i % 7 === 0 || i % 7 === 2 || i % 7 === 4 || i % 7 === 6) {
       logs.push({ userId, habitId: habitByName('Gym session'), date, value: 1, notes: null });
     }
 
-    // Steps: between 6k and 12k
+    // Steps between 6000 and 12000
     logs.push({
       userId,
       habitId: habitByName('Steps'),
@@ -135,7 +133,7 @@ export async function seedIfEmpty() {
       notes: null,
     });
 
-    // Water: 5–9 glasses
+    // Water 5 to 9 glasses
     logs.push({
       userId,
       habitId: habitByName('Drink water'),
@@ -144,7 +142,7 @@ export async function seedIfEmpty() {
       notes: null,
     });
 
-    // Study: only weekdays, 20–80 minutes
+    // Study only on weekdays
     const dayOfWeek = new Date(date).getDay();
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
       logs.push({
@@ -156,7 +154,7 @@ export async function seedIfEmpty() {
       });
     }
 
-    // Meditate: every other day
+    // Meditate every other day
     if (i % 2 === 0) {
       logs.push({ userId, habitId: habitByName('Meditate'), date, value: 1, notes: null });
     }
@@ -164,7 +162,7 @@ export async function seedIfEmpty() {
 
   await db.insert(habitLogs).values(logs);
 
-  // 5. Targets — mix of weekly and monthly, per-habit
+  // 5. Targets for each habit
   await db.insert(targets).values([
     { userId, habitId: habitByName('Gym session'), categoryId: null, period: 'weekly', amount: 4 },
     { userId, habitId: habitByName('Drink water'), categoryId: null, period: 'weekly', amount: 56 },

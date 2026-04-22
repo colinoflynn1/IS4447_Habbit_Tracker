@@ -1,6 +1,8 @@
 import ScreenHeader from '@/components/ui/screen-header';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useContext } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppContext } from '../_layout';
 
@@ -15,6 +17,19 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader title="Settings" subtitle="Preferences and account" />
 
+        <Pressable
+          accessibilityLabel="Manage categories"
+          accessibilityRole="button"
+          onPress={() => router.push('/categories')}
+          style={({ pressed }) => [styles.linkRow, pressed ? styles.linkRowPressed : null]}
+        >
+          <View style={styles.linkLeft}>
+            <Ionicons name="pricetags-outline" size={20} color="#0F766E" />
+            <Text style={styles.linkLabel}>Manage categories</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+        </Pressable>
+
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Database status</Text>
           <Text style={styles.row}>Categories: {categories.length}</Text>
@@ -24,8 +39,8 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={styles.placeholder}>
-          Account controls (register, login, logout, delete profile), dark mode,
-          notifications and CSV export land in later phases.
+          Account controls, dark mode, notifications and CSV export are coming
+          in later phases.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -41,6 +56,30 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 24,
+  },
+  linkRow: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    padding: 14,
+  },
+  linkRowPressed: {
+    opacity: 0.7,
+  },
+  linkLeft: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  linkLabel: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '600',
   },
   card: {
     backgroundColor: '#FFFFFF',

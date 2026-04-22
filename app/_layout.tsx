@@ -10,8 +10,7 @@ import {
 } from '@/db/schema';
 import { seedIfEmpty } from '@/db/seed';
 
-// Types mirror the Drizzle schema. Defined here so screens can import them
-// alongside the context without a circular import.
+// Types that match the Drizzle schema. Screens import these alongside the context.
 export type User = {
   id: number;
   username: string;
@@ -32,7 +31,7 @@ export type Habit = {
   userId: number;
   categoryId: number;
   name: string;
-  metricType: string; // 'boolean' | 'count'
+  metricType: string;
   unit: string | null;
   createdAt: string;
 };
@@ -41,7 +40,7 @@ export type HabitLog = {
   id: number;
   userId: number;
   habitId: number;
-  date: string; // YYYY-MM-DD
+  date: string;
   value: number;
   notes: string | null;
 };
@@ -51,7 +50,7 @@ export type Target = {
   userId: number;
   habitId: number | null;
   categoryId: number | null;
-  period: string; // 'weekly' | 'monthly'
+  period: string;
   amount: number;
 };
 
@@ -78,8 +77,8 @@ export default function RootLayout() {
   const [habitLogs, setHabitLogs] = useState<HabitLog[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
 
-  // Reload every table from the DB. Called on mount and any time a screen
-  // mutates data, so the whole app reflects the new state.
+  // Reloads every table from the database. I call this after any insert,
+  // update or delete so the UI stays in sync with what is stored.
   const refreshAll = async () => {
     const [cats, hbs, logs, tgts, usrs] = await Promise.all([
       db.select().from(categoriesTable),
@@ -92,8 +91,7 @@ export default function RootLayout() {
     setHabits(hbs);
     setHabitLogs(logs);
     setTargets(tgts);
-    // Auto-login the seeded demo user in Phase 1 so the app is usable
-    // before we build the login screens. This is removed in Phase 4.
+    // Auto-login the demo user until the login screens are built in Phase 4.
     if (currentUserId === null && usrs.length > 0) {
       setCurrentUserId(usrs[0].id);
     }

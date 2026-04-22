@@ -9,11 +9,15 @@ export default function InsightsScreen() {
   if (!context) return null;
 
   const { habitLogs } = context;
+
+  // Get the last 7 dates as YYYY-MM-DD
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
     return d.toISOString().slice(0, 10);
   });
+
+  // Count how many logs happened each of those days
   const logsPerDay = last7Days.map(
     (date) => habitLogs.filter((l) => l.date === date).length
   );
@@ -44,8 +48,8 @@ export default function InsightsScreen() {
         </View>
 
         <Text style={styles.placeholder}>
-          Proper daily/weekly/monthly chart lands in Phase 3. This temporary bar
-          preview just confirms seeded logs are reaching this screen.
+          The proper daily, weekly and monthly chart with a real chart library
+          gets built in Phase 3.
         </Text>
       </ScrollView>
     </SafeAreaView>
