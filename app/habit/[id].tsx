@@ -2,9 +2,19 @@ import CategoryPicker from '@/components/ui/category-picker';
 import FormField from '@/components/ui/form-field';
 import MetricTypePicker from '@/components/ui/metric-type-picker';
 import PrimaryButton from '@/components/ui/primary-button';
+import ProgressBar from '@/components/ui/progress-bar';
 import ScreenHeader from '@/components/ui/screen-header';
 import { db } from '@/db/client';
-import { habitLogs as habitLogsTable, habits as habitsTable } from '@/db/schema';
+import {
+  habitLogs as habitLogsTable,
+  habits as habitsTable,
+  targets as targetsTable,
+} from '@/db/schema';
+import {
+  currentMonthDates,
+  currentWeekDates,
+  sumHabitLogs,
+} from '@/lib/date-utils';
 import { Ionicons } from '@expo/vector-icons';
 import { eq } from 'drizzle-orm';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -24,7 +34,10 @@ export default function EditHabitScreen() {
   const [unit, setUnit] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Load the current values once I know which habit this is.
+  // New target form state.
+  const [newTargetAmount, setNewTargetAmount] = useState('');
+  const [newTargetPeriod, setNewTargetPeriod] = useState<'weekly' | 'monthly'>('weekly');
+
   useEffect(() => {
     if (!context) return;
     const habit = context.habits.find((h) => h.id === habitId);
@@ -37,7 +50,7 @@ export default function EditHabitScreen() {
   }, [context, habitId]);
 
   if (!context) return null;
-  const { categories, habits, refreshAll } = context;
+  const { categories, habits, habitLogs, targets, currentUserId, refreshAll } = context;
   const habit = habits.find((h) => h.id === habitId);
 
   if (!habit) {
@@ -50,6 +63,15 @@ export default function EditHabitScreen() {
       </SafeAreaView>
     );
   }
+
+  // All targets for this habit.
+  const habitTargets = targets.filter((t) => t.habitId === habitId);
+
+  // Weekly and monthly progress for this habit.
+  const weekDates = currentWeekDates();
+  const monthDates = currentMonthDates();
+  const weekProgress = sumHabitLogs(habitLogs, habitId, weekDates);
+  const monthProgress = sumHabitLogs(habitLogs, habitId, monthDates);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -82,10 +104,53 @@ export default function EditHabitScreen() {
     }
   };
 
+  const handleAddTarget = async () => {
+    const amount = parseInt(newTargetAmount, 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Alert.alert('Enter a number', 'Target amount must be a positive number.');
+      return;
+    }
+    if (!currentUserId) return;
+
+    try {
+      await db.insert(targetsTable).values({
+        userId: currentUserId,
+        habitId,
+        categoryId: null,
+        period: newTargetPeriod,
+        amount,
+      });
+      setNewTargetAmount('');
+      await refreshAll();
+    } catch (error) {
+      Alert.alert('Could not save', 'Something went wrong saving this target.');
+      console.error(error);
+    }
+  };
+
+  const handleDeleteTarget = (targetId: number) => {
+    Alert.alert('Delete target?', 'This target will be removed.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await db.delete(targetsTable).where(eq(targetsTable.id, targetId));
+            await refreshAll();
+          } catch (error) {
+            Alert.alert('Could not delete', 'Something went wrong.');
+            console.error(error);
+          }
+        },
+      },
+    ]);
+  };
+
   const handleDelete = () => {
     Alert.alert(
       'Delete habit?',
-      `"${habit.name}" and all of its logs will be deleted. This cannot be undone.`,
+      `"${habit.name}" and all of its logs and targets will be deleted. This cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -93,8 +158,8 @@ export default function EditHabitScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete the logs first so no orphans are left behind.
               await db.delete(habitLogsTable).where(eq(habitLogsTable.habitId, habitId));
+              await db.delete(targetsTable).where(eq(targetsTable.habitId, habitId));
               await db.delete(habitsTable).where(eq(habitsTable.id, habitId));
               await refreshAll();
               router.back();
@@ -151,6 +216,86 @@ export default function EditHabitScreen() {
           />
         </View>
 
+        <View style={styles.sectionDivider} />
+
+        <Text style={styles.sectionTitle}>Targets</Text>
+        <Text style={styles.sectionSub}>
+          Set weekly or monthly goals for this habit. Progress is calculated
+          from your logs.
+        </Text>
+
+        {habitTargets.length === 0 ? (
+          <Text style={styles.emptyNote}>
+            No targets for this habit yet. Add one below.
+          </Text>
+        ) : (
+          habitTargets.map((target) => {
+            const progress =
+              target.period === 'weekly' ? weekProgress : monthProgress;
+            return (
+              <View key={target.id} style={styles.targetCard}>
+                <ProgressBar
+                  label={`${target.period === 'weekly' ? 'This week' : 'This month'} target`}
+                  current={progress}
+                  target={target.amount}
+                  unit={habit.unit}
+                />
+                <Pressable
+                  accessibilityLabel="Delete target"
+                  accessibilityRole="button"
+                  onPress={() => handleDeleteTarget(target.id)}
+                  style={styles.removeTargetBtn}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#B91C1C" />
+                  <Text style={styles.removeTargetLabel}>Remove</Text>
+                </Pressable>
+              </View>
+            );
+          })
+        )}
+
+        <View style={styles.addTargetBox}>
+          <Text style={styles.addTargetTitle}>Add a new target</Text>
+          <View style={styles.periodRow}>
+            {(['weekly', 'monthly'] as const).map((period) => (
+              <Pressable
+                key={period}
+                accessibilityLabel={`Target period ${period}`}
+                accessibilityRole="button"
+                onPress={() => setNewTargetPeriod(period)}
+                style={[
+                  styles.periodPill,
+                  newTargetPeriod === period ? styles.periodPillSelected : null,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.periodPillLabel,
+                    newTargetPeriod === period
+                      ? styles.periodPillLabelSelected
+                      : null,
+                  ]}
+                >
+                  {period === 'weekly' ? 'Weekly' : 'Monthly'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <FormField
+            label={`Target amount${habit.unit ? ' (' + habit.unit + ')' : ''}`}
+            value={newTargetAmount}
+            onChangeText={setNewTargetAmount}
+            placeholder="e.g. 5"
+            keyboardType="numeric"
+          />
+          <PrimaryButton
+            label="Add target"
+            onPress={handleAddTarget}
+            variant="secondary"
+            compact
+          />
+        </View>
+
         <View style={styles.dangerZone}>
           <PrimaryButton label="Delete habit" onPress={handleDelete} variant="danger" />
         </View>
@@ -185,8 +330,90 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 12,
   },
+  sectionDivider: {
+    backgroundColor: '#E5E7EB',
+    height: 1,
+    marginVertical: 20,
+  },
+  sectionTitle: {
+    color: '#0F172A',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  sectionSub: {
+    color: '#64748B',
+    fontSize: 13,
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  emptyNote: {
+    color: '#64748B',
+    fontSize: 13,
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  targetCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+    padding: 12,
+  },
+  removeTargetBtn: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  removeTargetLabel: {
+    color: '#B91C1C',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  addTargetBox: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    marginTop: 6,
+    padding: 12,
+  },
+  addTargetTitle: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  periodRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  periodPill: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  periodPillSelected: {
+    backgroundColor: '#0F766E',
+    borderColor: '#0F766E',
+  },
+  periodPillLabel: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  periodPillLabelSelected: {
+    color: '#FFFFFF',
+  },
   dangerZone: {
-    marginTop: 20,
+    marginTop: 30,
   },
   notFound: {
     color: '#475569',

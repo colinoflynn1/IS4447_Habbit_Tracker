@@ -91,7 +91,8 @@ export default function RootLayout() {
     setHabits(hbs);
     setHabitLogs(logs);
     setTargets(tgts);
-    // Auto-login the demo user until the login screens are built in Phase 4.
+    // Auto-login the demo user for now. This is a temporary shortcut until I
+    // build the real login screens.
     if (currentUserId === null && usrs.length > 0) {
       setCurrentUserId(usrs[0].id);
     }
