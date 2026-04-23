@@ -2,6 +2,8 @@
 IS4447 individual project by Colin O'Flynn.
 
 A react rative habit tracking app built with Expo and Drizzle ORM. The user can create habits, group them into categories, log them daily, set weekly/monthly targets and view basic insights.
+https://expo.dev/accounts/colinoflynn/projects/habit-tracker
+https://github.com/colinoflynn1/IS4447_Habbit_Tracker
 
 ## setup
 
