@@ -10,11 +10,7 @@ import {
   habits as habitsTable,
   targets as targetsTable,
 } from '@/db/schema';
-import {
-  currentMonthDates,
-  currentWeekDates,
-  sumHabitLogs,
-} from '@/lib/date-utils';
+import { currentMonthDates, currentWeekDates, sumHabitLogs } from '@/lib/date-utils';
 import { Ionicons } from '@expo/vector-icons';
 import { eq } from 'drizzle-orm';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -34,7 +30,6 @@ export default function EditHabitScreen() {
   const [unit, setUnit] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // New target form state.
   const [newTargetAmount, setNewTargetAmount] = useState('');
   const [newTargetPeriod, setNewTargetPeriod] = useState<'weekly' | 'monthly'>('weekly');
 
@@ -50,24 +45,21 @@ export default function EditHabitScreen() {
   }, [context, habitId]);
 
   if (!context) return null;
-  const { categories, habits, habitLogs, targets, currentUserId, refreshAll } = context;
+  const { categories, habits, habitLogs, targets, currentUserId, refreshAll, theme } = context;
   const habit = habits.find((h) => h.id === habitId);
 
   if (!habit) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
         <View style={styles.content}>
-          <Text style={styles.notFound}>Habit not found.</Text>
+          <Text style={[styles.notFound, { color: theme.textMuted }]}>Habit not found.</Text>
           <PrimaryButton label="Back" onPress={() => router.back()} compact />
         </View>
       </SafeAreaView>
     );
   }
 
-  // All targets for this habit.
   const habitTargets = targets.filter((t) => t.habitId === habitId);
-
-  // Weekly and monthly progress for this habit.
   const weekDates = currentWeekDates();
   const monthDates = currentMonthDates();
   const weekProgress = sumHabitLogs(habitLogs, habitId, weekDates);
@@ -174,7 +166,7 @@ export default function EditHabitScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
           <Pressable
@@ -183,8 +175,8 @@ export default function EditHabitScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            <Text style={styles.backLabel}>Back</Text>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
+            <Text style={[styles.backLabel, { color: theme.text }]}>Back</Text>
           </Pressable>
         </View>
 
@@ -216,24 +208,22 @@ export default function EditHabitScreen() {
           />
         </View>
 
-        <View style={styles.sectionDivider} />
+        <View style={[styles.sectionDivider, { backgroundColor: theme.border }]} />
 
-        <Text style={styles.sectionTitle}>Targets</Text>
-        <Text style={styles.sectionSub}>
-          Set weekly or monthly goals for this habit. Progress is calculated
-          from your logs.
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Targets</Text>
+        <Text style={[styles.sectionSub, { color: theme.textMuted }]}>
+          Set weekly or monthly goals for this habit. Progress is calculated from your logs.
         </Text>
 
         {habitTargets.length === 0 ? (
-          <Text style={styles.emptyNote}>
+          <Text style={[styles.emptyNote, { color: theme.textMuted }]}>
             No targets for this habit yet. Add one below.
           </Text>
         ) : (
           habitTargets.map((target) => {
-            const progress =
-              target.period === 'weekly' ? weekProgress : monthProgress;
+            const progress = target.period === 'weekly' ? weekProgress : monthProgress;
             return (
-              <View key={target.id} style={styles.targetCard}>
+              <View key={target.id} style={[styles.targetCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <ProgressBar
                   label={`${target.period === 'weekly' ? 'This week' : 'This month'} target`}
                   current={progress}
@@ -246,16 +236,16 @@ export default function EditHabitScreen() {
                   onPress={() => handleDeleteTarget(target.id)}
                   style={styles.removeTargetBtn}
                 >
-                  <Ionicons name="trash-outline" size={16} color="#B91C1C" />
-                  <Text style={styles.removeTargetLabel}>Remove</Text>
+                  <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                  <Text style={[styles.removeTargetLabel, { color: theme.danger }]}>Remove</Text>
                 </Pressable>
               </View>
             );
           })
         )}
 
-        <View style={styles.addTargetBox}>
-          <Text style={styles.addTargetTitle}>Add a new target</Text>
+        <View style={[styles.addTargetBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.addTargetTitle, { color: theme.text }]}>Add a new target</Text>
           <View style={styles.periodRow}>
             {(['weekly', 'monthly'] as const).map((period) => (
               <Pressable
@@ -265,15 +255,16 @@ export default function EditHabitScreen() {
                 onPress={() => setNewTargetPeriod(period)}
                 style={[
                   styles.periodPill,
-                  newTargetPeriod === period ? styles.periodPillSelected : null,
+                  {
+                    backgroundColor: newTargetPeriod === period ? theme.primary : theme.surface,
+                    borderColor: newTargetPeriod === period ? theme.primary : theme.inputBorder,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.periodPillLabel,
-                    newTargetPeriod === period
-                      ? styles.periodPillLabelSelected
-                      : null,
+                    { color: newTargetPeriod === period ? theme.textOnPrimary : theme.text },
                   ]}
                 >
                   {period === 'weekly' ? 'Weekly' : 'Monthly'}
@@ -306,7 +297,6 @@ export default function EditHabitScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -323,7 +313,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backLabel: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -331,30 +320,24 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   sectionDivider: {
-    backgroundColor: '#E5E7EB',
     height: 1,
     marginVertical: 20,
   },
   sectionTitle: {
-    color: '#0F172A',
     fontSize: 17,
     fontWeight: '700',
   },
   sectionSub: {
-    color: '#64748B',
     fontSize: 13,
     marginBottom: 12,
     marginTop: 4,
   },
   emptyNote: {
-    color: '#64748B',
     fontSize: 13,
     fontStyle: 'italic',
     marginBottom: 12,
   },
   targetCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 10,
@@ -367,14 +350,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   removeTargetLabel: {
-    color: '#B91C1C',
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
   },
   addTargetBox: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderStyle: 'dashed',
     borderWidth: 1.5,
@@ -382,7 +362,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   addTargetTitle: {
-    color: '#0F172A',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 10,
@@ -393,30 +372,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   periodPill: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  periodPillSelected: {
-    backgroundColor: '#0F766E',
-    borderColor: '#0F766E',
-  },
   periodPillLabel: {
-    color: '#0F172A',
     fontSize: 13,
     fontWeight: '600',
-  },
-  periodPillLabelSelected: {
-    color: '#FFFFFF',
   },
   dangerZone: {
     marginTop: 30,
   },
   notFound: {
-    color: '#475569',
     fontSize: 15,
     marginBottom: 12,
     marginTop: 30,

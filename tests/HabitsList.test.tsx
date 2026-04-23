@@ -1,8 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 
-// Mock expo-sqlite because Jest cannot load native modules.
-// I return an object with the methods my code calls so it does not crash.
 jest.mock('expo-sqlite', () => ({
   openDatabaseSync: () => ({
     execSync: () => {},
@@ -11,7 +9,6 @@ jest.mock('expo-sqlite', () => ({
   }),
 }));
 
-// Mock the db client so it does not try to open a real database.
 jest.mock('@/db/client', () => ({
   db: {
     select: () => ({ from: () => Promise.resolve([]) }),
@@ -21,7 +18,6 @@ jest.mock('@/db/client', () => ({
   },
 }));
 
-// Mock expo-router because the screen does not need real navigation here.
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
   Link: ({ children }: any) => children,
@@ -32,7 +28,6 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
 }));
 
-// Mock SafeAreaView so it just acts as a passthrough View.
 jest.mock('react-native-safe-area-context', () => {
   const { View } = require('react-native');
   return {
@@ -42,17 +37,16 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-// Mock Ionicons because it tries to load fonts.
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
 }));
 
 import HabitsScreen from '@/app/(tabs)/habits';
 import { AppContext } from '@/app/_layout';
+import { lightTheme } from '@/lib/theme';
 
 describe('HabitsScreen integration', () => {
   it('renders a card for every habit that comes through the context', () => {
-    // Build a fake context like the one the seed would have produced.
     const fakeContext = {
       currentUserId: 1,
       setCurrentUserId: jest.fn(),
@@ -87,6 +81,9 @@ describe('HabitsScreen integration', () => {
       setTargets: jest.fn(),
       refreshAll: jest.fn(),
       booted: true,
+      theme: lightTheme,
+      themeName: 'light' as const,
+      toggleTheme: jest.fn(),
     };
 
     const { getByText } = render(

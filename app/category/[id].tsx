@@ -23,7 +23,6 @@ export default function EditCategoryScreen() {
   const [icon, setIcon] = useState('barbell-outline');
   const [saving, setSaving] = useState(false);
 
-  // Load the current category values once the context is ready.
   useEffect(() => {
     if (!context) return;
     const category = context.categories.find((c) => c.id === categoryId);
@@ -35,21 +34,20 @@ export default function EditCategoryScreen() {
   }, [context, categoryId]);
 
   if (!context) return null;
-  const { categories, habits, refreshAll } = context;
+  const { categories, habits, refreshAll, theme } = context;
   const category = categories.find((c) => c.id === categoryId);
 
   if (!category) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
         <View style={styles.content}>
-          <Text style={styles.notFound}>Category not found.</Text>
+          <Text style={[styles.notFound, { color: theme.textMuted }]}>Category not found.</Text>
           <PrimaryButton label="Back" onPress={() => router.back()} compact />
         </View>
       </SafeAreaView>
     );
   }
 
-  // Count how many habits are in this category. Delete is blocked if any exist.
   const habitsInCategory = habits.filter((h) => h.categoryId === categoryId);
 
   const handleSave = async () => {
@@ -79,9 +77,7 @@ export default function EditCategoryScreen() {
   };
 
   const handleDelete = () => {
-    // Rule: do not allow deleting a category that still has habits attached.
-    // This prevents habits from being orphaned. The user has to move or delete
-    // the habits first.
+    // Stop the user from deleting a category that still has habits in it.
     if (habitsInCategory.length > 0) {
       Alert.alert(
         'Cannot delete',
@@ -116,7 +112,7 @@ export default function EditCategoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
           <Pressable
@@ -125,8 +121,8 @@ export default function EditCategoryScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            <Text style={styles.backLabel}>Back</Text>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
+            <Text style={[styles.backLabel, { color: theme.text }]}>Back</Text>
           </Pressable>
         </View>
 
@@ -138,7 +134,7 @@ export default function EditCategoryScreen() {
 
         <IconPicker value={icon} onChange={setIcon} color={color} />
 
-        <View style={styles.preview}>
+        <View style={[styles.preview, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={[styles.previewIcon, { backgroundColor: color }]}>
             <Ionicons
               name={icon as keyof typeof Ionicons.glyphMap}
@@ -146,7 +142,7 @@ export default function EditCategoryScreen() {
               color="#FFFFFF"
             />
           </View>
-          <Text style={styles.previewLabel}>{name || 'Preview'}</Text>
+          <Text style={[styles.previewLabel, { color: theme.text }]}>{name || 'Preview'}</Text>
         </View>
 
         <View style={styles.actions}>
@@ -159,7 +155,7 @@ export default function EditCategoryScreen() {
         <View style={styles.dangerZone}>
           <PrimaryButton label="Delete category" onPress={handleDelete} variant="danger" />
           {habitsInCategory.length > 0 ? (
-            <Text style={styles.dangerHelper}>
+            <Text style={[styles.dangerHelper, { color: theme.textMuted }]}>
               You cannot delete this while it has {habitsInCategory.length}{' '}
               {habitsInCategory.length === 1 ? 'habit' : 'habits'} in it.
             </Text>
@@ -172,7 +168,6 @@ export default function EditCategoryScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -189,14 +184,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backLabel: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
   },
   preview: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -213,7 +205,6 @@ const styles = StyleSheet.create({
     width: 40,
   },
   previewLabel: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
   },
@@ -224,13 +215,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   dangerHelper: {
-    color: '#64748B',
     fontSize: 12,
     marginTop: 8,
     textAlign: 'center',
   },
   notFound: {
-    color: '#475569',
     fontSize: 15,
     marginBottom: 12,
     marginTop: 30,

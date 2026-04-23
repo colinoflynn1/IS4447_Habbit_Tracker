@@ -8,7 +8,15 @@ import {
 } from '@/db/schema';
 import { seedIfEmpty } from '@/db/seed';
 import { getStoredUserId } from '@/lib/auth';
+import {
+  getStoredTheme,
+  getTheme,
+  setStoredTheme,
+  Theme,
+  ThemeName,
+} from '@/lib/theme';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { createContext, useEffect, useState } from 'react';
 
 export type User = {
@@ -67,6 +75,9 @@ type AppContextType = {
   setTargets: React.Dispatch<React.SetStateAction<Target[]>>;
   refreshAll: () => Promise<void>;
   booted: boolean;
+  theme: Theme;
+  themeName: ThemeName;
+  toggleTheme: () => void;
 };
 
 export const AppContext = createContext<AppContextType | null>(null);
@@ -78,12 +89,11 @@ export default function RootLayout() {
   const [habitLogs, setHabitLogs] = useState<HabitLog[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
   const [booted, setBooted] = useState(false);
+  const [themeName, setThemeName] = useState<ThemeName>('light');
 
   const router = useRouter();
   const segments = useSegments();
 
-  // Reload everything from the database. Filter by current user so users only
-  // see their own data.
   const refreshAll = async () => {
     const [cats, hbs, logs, tgts] = await Promise.all([
       db.select().from(categoriesTable),
@@ -97,13 +107,18 @@ export default function RootLayout() {
     setTargets(tgts.filter((t) => t.userId === currentUserId));
   };
 
-  // Boot once - seed if empty and read stored session.
+  const toggleTheme = () => {
+    const next: ThemeName = themeName === 'light' ? 'dark' : 'light';
+    setThemeName(next);
+    setStoredTheme(next);
+  };
+
   useEffect(() => {
     const boot = async () => {
       await seedIfEmpty();
+      setThemeName(getStoredTheme());
       const storedId = getStoredUserId();
       if (storedId !== null) {
-        // Confirm the user still exists before setting it
         const allUsers = await db.select().from(usersTable);
         const exists = allUsers.find((u) => u.id === storedId);
         if (exists) {
@@ -115,12 +130,10 @@ export default function RootLayout() {
     void boot();
   }, []);
 
-  // Whenever currentUserId changes, refresh data.
   useEffect(() => {
     if (currentUserId !== null) {
       void refreshAll();
     } else {
-      // No user, clear everything
       setCategories([]);
       setHabits([]);
       setHabitLogs([]);
@@ -129,9 +142,6 @@ export default function RootLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
-  // Auth gate. If we have booted and there is no user, push the user to the
-  // login screen. If we have a user but they are on the login screen, send them
-  // to the tabs.
   useEffect(() => {
     if (!booted) return;
     const inAuthGroup = segments[0] === 'auth';
@@ -141,6 +151,8 @@ export default function RootLayout() {
       router.replace('/(tabs)');
     }
   }, [booted, currentUserId, segments, router]);
+
+  const theme = getTheme(themeName);
 
   return (
     <AppContext.Provider
@@ -157,8 +169,12 @@ export default function RootLayout() {
         setTargets,
         refreshAll,
         booted,
+        theme,
+        themeName,
+        toggleTheme,
       }}
     >
+      <StatusBar style={themeName === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }} />
     </AppContext.Provider>
   );

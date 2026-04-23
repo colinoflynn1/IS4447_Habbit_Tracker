@@ -1,3 +1,22 @@
+// Mock expo-sqlite because Jest cannot load native modules.
+jest.mock('expo-sqlite', () => ({
+  openDatabaseSync: () => ({
+    execSync: () => {},
+    runSync: () => {},
+    getFirstSync: () => null,
+  }),
+}));
+
+// Mock the db client so importing the layout does not try to open SQLite.
+jest.mock('@/db/client', () => ({
+  db: {
+    select: () => ({ from: () => Promise.resolve([]) }),
+    insert: () => ({ values: () => Promise.resolve() }),
+    update: () => ({ set: () => ({ where: () => Promise.resolve() }) }),
+    delete: () => ({ where: () => Promise.resolve() }),
+  },
+}));
+
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import FormField from '@/components/ui/form-field';
@@ -9,11 +28,8 @@ describe('FormField', () => {
       <FormField label="Username" value="" onChangeText={onChangeText} />
     );
 
-    // The label should appear on screen
     expect(getByText('Username')).toBeTruthy();
 
-    // Simulate the user typing into the field. The input is reachable by its
-    // accessibility label which I set to match the field label.
     fireEvent.changeText(getByLabelText('Username'), 'colin');
     expect(onChangeText).toHaveBeenCalledWith('colin');
   });

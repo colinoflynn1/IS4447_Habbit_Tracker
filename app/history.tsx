@@ -16,9 +16,8 @@ export default function HistoryScreen() {
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
 
   if (!context) return null;
-  const { habits, habitLogs, categories } = context;
+  const { habits, habitLogs, categories, theme } = context;
 
-  // Apply all filters in one pass.
   const filteredLogs = useMemo(() => {
     return habitLogs
       .slice()
@@ -26,25 +25,17 @@ export default function HistoryScreen() {
       .filter((log) => {
         const habit = habits.find((h) => h.id === log.habitId);
         if (!habit) return false;
-
-        // Text filter against the habit name.
         if (
           searchText.trim() &&
           !habit.name.toLowerCase().includes(searchText.trim().toLowerCase())
         ) {
           return false;
         }
-
-        // Category filter
         if (categoryFilter !== null && habit.categoryId !== categoryFilter) {
           return false;
         }
-
-        // Date range. Strings sort correctly in YYYY-MM-DD format
-        // so I can compare them directly.
         if (fromDate.trim() && log.date < fromDate.trim()) return false;
         if (toDate.trim() && log.date > toDate.trim()) return false;
-
         return true;
       });
   }, [habitLogs, habits, searchText, fromDate, toDate, categoryFilter]);
@@ -60,7 +51,7 @@ export default function HistoryScreen() {
     searchText !== '' || fromDate !== '' || toDate !== '' || categoryFilter !== null;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
           <Pressable
@@ -69,8 +60,8 @@ export default function HistoryScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            <Text style={styles.backLabel}>Back</Text>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
+            <Text style={[styles.backLabel, { color: theme.text }]}>Back</Text>
           </Pressable>
         </View>
 
@@ -79,9 +70,8 @@ export default function HistoryScreen() {
           subtitle={`${filteredLogs.length} ${filteredLogs.length === 1 ? 'log' : 'logs'} found`}
         />
 
-        {/* Filters */}
-        <View style={styles.filterCard}>
-          <Text style={styles.filterTitle}>Filters</Text>
+        <View style={[styles.filterCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.filterTitle, { color: theme.text }]}>Filters</Text>
 
           <FormField
             label="Search by habit name"
@@ -109,7 +99,7 @@ export default function HistoryScreen() {
             </View>
           </View>
 
-          <Text style={styles.subLabel}>Category</Text>
+          <Text style={[styles.subLabel, { color: theme.textMuted }]}>Category</Text>
           <View style={styles.pillRow}>
             <Pressable
               accessibilityLabel="All categories"
@@ -117,13 +107,23 @@ export default function HistoryScreen() {
               onPress={() => setCategoryFilter(null)}
               style={[
                 styles.pill,
-                categoryFilter === null ? styles.pillActive : null,
+                {
+                  backgroundColor:
+                    categoryFilter === null ? theme.primary : theme.surface,
+                  borderColor:
+                    categoryFilter === null ? theme.primary : theme.inputBorder,
+                },
               ]}
             >
               <Text
                 style={[
                   styles.pillLabel,
-                  categoryFilter === null ? styles.pillLabelActive : null,
+                  {
+                    color:
+                      categoryFilter === null
+                        ? theme.textOnPrimary
+                        : theme.text,
+                  },
                 ]}
               >
                 All
@@ -140,7 +140,7 @@ export default function HistoryScreen() {
                   style={[
                     styles.pill,
                     {
-                      backgroundColor: isActive ? cat.color : '#FFFFFF',
+                      backgroundColor: isActive ? cat.color : theme.surface,
                       borderColor: cat.color,
                     },
                   ]}
@@ -170,12 +170,11 @@ export default function HistoryScreen() {
           ) : null}
         </View>
 
-        {/* Results */}
         {filteredLogs.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={36} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No logs match those filters</Text>
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="search-outline" size={36} color={theme.textMuted} />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No logs match those filters</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
               Try clearing some filters or logging from the Today tab.
             </Text>
           </View>
@@ -190,11 +189,11 @@ export default function HistoryScreen() {
                 ? 'Done'
                 : `${log.value}${habit?.unit ? ' ' + habit.unit : ''}`;
             return (
-              <View key={log.id} style={styles.logCard}>
+              <View key={log.id} style={[styles.logCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View
                   style={[
                     styles.logIconCircle,
-                    { backgroundColor: cat?.color ?? '#0F766E' },
+                    { backgroundColor: cat?.color ?? theme.primary },
                   ]}
                 >
                   <Ionicons
@@ -204,8 +203,10 @@ export default function HistoryScreen() {
                   />
                 </View>
                 <View style={styles.logMain}>
-                  <Text style={styles.logHabit}>{habit?.name ?? 'Unknown habit'}</Text>
-                  <Text style={styles.logMeta}>
+                  <Text style={[styles.logHabit, { color: theme.text }]}>
+                    {habit?.name ?? 'Unknown habit'}
+                  </Text>
+                  <Text style={[styles.logMeta, { color: theme.textMuted }]}>
                     {log.date} • {valueLabel}
                   </Text>
                 </View>
@@ -220,7 +221,6 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -237,20 +237,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backLabel: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
   },
   filterCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 14,
     padding: 14,
   },
   filterTitle: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 10,
@@ -263,7 +259,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subLabel: {
-    color: '#334155',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 6,
@@ -275,53 +270,37 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pill: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 999,
     borderWidth: 1.5,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  pillActive: {
-    backgroundColor: '#0F766E',
-    borderColor: '#0F766E',
-  },
   pillLabel: {
-    color: '#0F172A',
     fontSize: 13,
     fontWeight: '600',
-  },
-  pillLabelActive: {
-    color: '#FFFFFF',
   },
   clearWrap: {
     marginTop: 6,
   },
   emptyState: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginTop: 10,
     padding: 30,
   },
   emptyTitle: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
     marginTop: 10,
   },
   emptyText: {
-    color: '#64748B',
     fontSize: 14,
     marginTop: 4,
     textAlign: 'center',
   },
   logCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -340,12 +319,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logHabit: {
-    color: '#0F172A',
     fontSize: 14,
     fontWeight: '700',
   },
   logMeta: {
-    color: '#64748B',
     fontSize: 12,
     marginTop: 2,
   },

@@ -21,10 +21,9 @@ export default function NewHabitScreen() {
   const [saving, setSaving] = useState(false);
 
   if (!context) return null;
-  const { categories, currentUserId, refreshAll } = context;
+  const { categories, currentUserId, refreshAll, theme } = context;
 
   const handleSave = async () => {
-    // Basic validation. If any required field is missing I show an alert.
     if (!name.trim()) {
       Alert.alert('Missing name', 'Please enter a name for this habit.');
       return;
@@ -59,7 +58,7 @@ export default function NewHabitScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
           <Pressable
@@ -68,8 +67,8 @@ export default function NewHabitScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            <Text style={styles.backLabel}>Back</Text>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
+            <Text style={[styles.backLabel, { color: theme.text }]}>Back</Text>
           </Pressable>
         </View>
 
@@ -121,7 +120,6 @@ export default function NewHabitScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -138,7 +136,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backLabel: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
   },

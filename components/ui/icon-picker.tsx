@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useContext } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppContext } from '@/app/_layout';
 
 type Props = {
   value: string;
@@ -7,8 +9,6 @@ type Props = {
   color: string;
 };
 
-// Pre-defined list of Ionicon names that suit habit categories.
-// The user taps one to pick it for their category.
 const ICONS = [
   'barbell-outline',
   'water-outline',
@@ -25,9 +25,12 @@ const ICONS = [
 ];
 
 export default function IconPicker({ value, onChange, color }: Props) {
+  const context = useContext(AppContext);
+  const theme = context?.theme;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Icon</Text>
+      <Text style={[styles.label, { color: theme?.textMuted ?? '#334155' }]}>Icon</Text>
       <View style={styles.grid}>
         {ICONS.map((name) => {
           const isSelected = value === name;
@@ -40,15 +43,15 @@ export default function IconPicker({ value, onChange, color }: Props) {
               style={[
                 styles.cell,
                 {
-                  backgroundColor: isSelected ? color : '#FFFFFF',
-                  borderColor: isSelected ? color : '#CBD5E1',
+                  backgroundColor: isSelected ? color : theme?.surface ?? '#FFFFFF',
+                  borderColor: isSelected ? color : theme?.inputBorder ?? '#CBD5E1',
                 },
               ]}
             >
               <Ionicons
                 name={name as keyof typeof Ionicons.glyphMap}
                 size={22}
-                color={isSelected ? '#FFFFFF' : '#0F172A'}
+                color={isSelected ? '#FFFFFF' : theme?.text ?? '#0F172A'}
               />
             </Pressable>
           );
@@ -63,7 +66,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    color: '#334155',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 6,

@@ -1,12 +1,12 @@
+import { useContext } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppContext } from '@/app/_layout';
 
 type Props = {
   value: string;
   onChange: (color: string) => void;
 };
 
-// I picked twelve nice distinct colours for the category palette.
-// They all pair well with white text so the category pills stay readable.
 const COLORS = [
   '#0F766E',
   '#2563EB',
@@ -23,9 +23,12 @@ const COLORS = [
 ];
 
 export default function ColorPicker({ value, onChange }: Props) {
+  const context = useContext(AppContext);
+  const theme = context?.theme;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Colour</Text>
+      <Text style={[styles.label, { color: theme?.textMuted ?? '#334155' }]}>Colour</Text>
       <View style={styles.row}>
         {COLORS.map((color) => {
           const isSelected = value === color;
@@ -39,7 +42,7 @@ export default function ColorPicker({ value, onChange }: Props) {
                 styles.swatch,
                 {
                   backgroundColor: color,
-                  borderColor: isSelected ? '#0F172A' : 'transparent',
+                  borderColor: isSelected ? (theme?.text ?? '#0F172A') : 'transparent',
                 },
               ]}
             />
@@ -55,7 +58,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    color: '#334155',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 6,

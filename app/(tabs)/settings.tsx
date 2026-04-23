@@ -9,19 +9,20 @@ import {
   users as usersTable,
 } from '@/db/schema';
 import { logoutUser } from '@/lib/auth';
+import { exportLogsToCsv } from '@/lib/export';
 import { Ionicons } from '@expo/vector-icons';
 import { eq } from 'drizzle-orm';
 import { router } from 'expo-router';
 import { useContext, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppContext } from '../_layout';
 
 export default function SettingsScreen() {
   const context = useContext(AppContext);
   const [username, setUsername] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
-  // Look up the current user's username for display.
   useEffect(() => {
     const load = async () => {
       if (!context?.currentUserId) return;
@@ -33,7 +34,16 @@ export default function SettingsScreen() {
   }, [context?.currentUserId]);
 
   if (!context) return null;
-  const { habits, habitLogs, categories, targets, setCurrentUserId } = context;
+  const {
+    habits,
+    habitLogs,
+    categories,
+    targets,
+    setCurrentUserId,
+    theme,
+    themeName,
+    toggleTheme,
+  } = context;
 
   const handleLogout = () => {
     logoutUser();
@@ -53,7 +63,6 @@ export default function SettingsScreen() {
             if (!context.currentUserId) return;
             const userId = context.currentUserId;
             try {
-              // Delete child rows first to avoid orphan data.
               await db.delete(habitLogsTable).where(eq(habitLogsTable.userId, userId));
               await db.delete(targetsTable).where(eq(targetsTable.userId, userId));
               await db.delete(habitsTable).where(eq(habitsTable.userId, userId));
@@ -71,53 +80,109 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    const result = await exportLogsToCsv(habitLogs, habits, categories);
+    setExporting(false);
+    if (!result.ok) {
+      Alert.alert('Could not export', result.error);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader title="Settings" subtitle="Account and preferences" />
 
-        <View style={styles.profileCard}>
-          <View style={styles.avatarCircle}>
-            <Ionicons name="person-outline" size={20} color="#FFFFFF" />
+        <View style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.avatarCircle, { backgroundColor: theme.primary }]}>
+            <Ionicons name="person-outline" size={20} color={theme.textOnPrimary} />
           </View>
           <View style={styles.profileText}>
-            <Text style={styles.profileLabel}>Logged in as</Text>
-            <Text style={styles.profileName}>{username ?? '—'}</Text>
+            <Text style={[styles.profileLabel, { color: theme.textMuted }]}>Logged in as</Text>
+            <Text style={[styles.profileName, { color: theme.text }]}>{username ?? '—'}</Text>
           </View>
+        </View>
+
+        {/* Dark mode toggle */}
+        <View style={[styles.linkRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={styles.linkLeft}>
+            <Ionicons
+              name={themeName === 'dark' ? 'moon' : 'moon-outline'}
+              size={20}
+              color={theme.primary}
+            />
+            <Text style={[styles.linkLabel, { color: theme.text }]}>Dark mode</Text>
+          </View>
+          <Switch
+            accessibilityLabel="Toggle dark mode"
+            value={themeName === 'dark'}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#CBD5E1', true: theme.primary }}
+            thumbColor="#FFFFFF"
+          />
         </View>
 
         <Pressable
           accessibilityLabel="Manage categories"
           accessibilityRole="button"
           onPress={() => router.push('/categories')}
-          style={({ pressed }) => [styles.linkRow, pressed ? styles.linkRowPressed : null]}
+          style={({ pressed }) => [
+            styles.linkRow,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            pressed ? styles.linkRowPressed : null,
+          ]}
         >
           <View style={styles.linkLeft}>
-            <Ionicons name="pricetags-outline" size={20} color="#0F766E" />
-            <Text style={styles.linkLabel}>Manage categories</Text>
+            <Ionicons name="pricetags-outline" size={20} color={theme.primary} />
+            <Text style={[styles.linkLabel, { color: theme.text }]}>Manage categories</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+          <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
         </Pressable>
 
         <Pressable
           accessibilityLabel="View history"
           accessibilityRole="button"
           onPress={() => router.push('/history')}
-          style={({ pressed }) => [styles.linkRow, pressed ? styles.linkRowPressed : null]}
+          style={({ pressed }) => [
+            styles.linkRow,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            pressed ? styles.linkRowPressed : null,
+          ]}
         >
           <View style={styles.linkLeft}>
-            <Ionicons name="time-outline" size={20} color="#0F766E" />
-            <Text style={styles.linkLabel}>History and search</Text>
+            <Ionicons name="time-outline" size={20} color={theme.primary} />
+            <Text style={[styles.linkLabel, { color: theme.text }]}>History and search</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+          <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
         </Pressable>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>My data</Text>
-          <Text style={styles.row}>Categories: {categories.length}</Text>
-          <Text style={styles.row}>Habits: {habits.length}</Text>
-          <Text style={styles.row}>Logs: {habitLogs.length}</Text>
-          <Text style={styles.row}>Targets: {targets.length}</Text>
+        <Pressable
+          accessibilityLabel="Export logs as CSV"
+          accessibilityRole="button"
+          onPress={handleExport}
+          disabled={exporting}
+          style={({ pressed }) => [
+            styles.linkRow,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            pressed ? styles.linkRowPressed : null,
+          ]}
+        >
+          <View style={styles.linkLeft}>
+            <Ionicons name="download-outline" size={20} color={theme.primary} />
+            <Text style={[styles.linkLabel, { color: theme.text }]}>
+              {exporting ? 'Exporting...' : 'Export logs to CSV'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+        </Pressable>
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>My data</Text>
+          <Text style={[styles.row, { color: theme.text }]}>Categories: {categories.length}</Text>
+          <Text style={[styles.row, { color: theme.text }]}>Habits: {habits.length}</Text>
+          <Text style={[styles.row, { color: theme.text }]}>Logs: {habitLogs.length}</Text>
+          <Text style={[styles.row, { color: theme.text }]}>Targets: {targets.length}</Text>
         </View>
 
         <View style={styles.dangerZone}>
@@ -130,7 +195,7 @@ export default function SettingsScreen() {
             onPress={handleDeleteProfile}
             variant="danger"
           />
-          <Text style={styles.dangerHelper}>
+          <Text style={[styles.dangerHelper, { color: theme.textMuted }]}>
             Deletes your account and every habit, log, category and target you created.
           </Text>
         </View>
@@ -141,7 +206,6 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
@@ -151,8 +215,6 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -161,7 +223,6 @@ const styles = StyleSheet.create({
   },
   avatarCircle: {
     alignItems: 'center',
-    backgroundColor: '#0F766E',
     borderRadius: 22,
     height: 44,
     justifyContent: 'center',
@@ -172,19 +233,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileLabel: {
-    color: '#64748B',
     fontSize: 12,
   },
   profileName: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
     marginTop: 2,
   },
   linkRow: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -201,26 +258,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   linkLabel: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 14,
     padding: 14,
   },
   cardTitle: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 8,
   },
   row: {
-    color: '#334155',
     fontSize: 14,
     marginTop: 2,
   },
@@ -228,7 +280,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   dangerHelper: {
-    color: '#64748B',
     fontSize: 12,
     marginTop: 8,
     textAlign: 'center',

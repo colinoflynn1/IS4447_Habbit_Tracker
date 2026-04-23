@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useContext } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Category } from '@/app/_layout';
+import { AppContext, Category } from '@/app/_layout';
 
 type Props = {
   categories: Category[];
@@ -8,12 +9,13 @@ type Props = {
   onSelect: (id: number) => void;
 };
 
-// Horizontal row of pressable category pills. The selected one is filled in
-// with the category's colour.
 export default function CategoryPicker({ categories, selectedId, onSelect }: Props) {
+  const context = useContext(AppContext);
+  const theme = context?.theme;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Category</Text>
+      <Text style={[styles.label, { color: theme?.textMuted ?? '#334155' }]}>Category</Text>
       <View style={styles.row}>
         {categories.map((category) => {
           const isSelected = selectedId === category.id;
@@ -26,7 +28,9 @@ export default function CategoryPicker({ categories, selectedId, onSelect }: Pro
               style={[
                 styles.pill,
                 {
-                  backgroundColor: isSelected ? category.color : '#FFFFFF',
+                  backgroundColor: isSelected
+                    ? category.color
+                    : theme?.surface ?? '#FFFFFF',
                   borderColor: category.color,
                 },
               ]}
@@ -58,7 +62,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    color: '#334155',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 6,

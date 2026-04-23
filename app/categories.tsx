@@ -11,14 +11,13 @@ export default function CategoriesScreen() {
   const context = useContext(AppContext);
   if (!context) return null;
 
-  const { categories, habits } = context;
+  const { categories, habits, theme } = context;
 
-  // Count how many habits each category has. Used to show on the card.
   const habitCountFor = (categoryId: number) =>
     habits.filter((h) => h.categoryId === categoryId).length;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
           <Pressable
@@ -27,16 +26,13 @@ export default function CategoriesScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            <Text style={styles.backLabel}>Back</Text>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
+            <Text style={[styles.backLabel, { color: theme.text }]}>Back</Text>
           </Pressable>
         </View>
 
         <View style={styles.headerRow}>
-          <ScreenHeader
-            title="Categories"
-            subtitle={`${categories.length} total`}
-          />
+          <ScreenHeader title="Categories" subtitle={`${categories.length} total`} />
           <PrimaryButton
             label="+ Add"
             onPress={() => router.push('/category/new')}
@@ -45,10 +41,10 @@ export default function CategoriesScreen() {
         </View>
 
         {categories.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="pricetags-outline" size={40} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No categories yet</Text>
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="pricetags-outline" size={40} color={theme.textMuted} />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No categories yet</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
               Tap Add to create your first category.
             </Text>
           </View>
@@ -63,12 +59,11 @@ export default function CategoriesScreen() {
                 onPress={() => router.push(`/category/${category.id}`)}
                 style={({ pressed }) => [
                   styles.card,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
                   pressed ? styles.cardPressed : null,
                 ]}
               >
-                <View
-                  style={[styles.iconCircle, { backgroundColor: category.color }]}
-                >
+                <View style={[styles.iconCircle, { backgroundColor: category.color }]}>
                   <Ionicons
                     name={category.icon as keyof typeof Ionicons.glyphMap}
                     size={20}
@@ -76,12 +71,12 @@ export default function CategoriesScreen() {
                   />
                 </View>
                 <View style={styles.cardMain}>
-                  <Text style={styles.name}>{category.name}</Text>
-                  <Text style={styles.meta}>
+                  <Text style={[styles.name, { color: theme.text }]}>{category.name}</Text>
+                  <Text style={[styles.meta, { color: theme.textMuted }]}>
                     {count} {count === 1 ? 'habit' : 'habits'}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
               </Pressable>
             );
           })
@@ -93,7 +88,6 @@ export default function CategoriesScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -110,7 +104,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backLabel: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -122,8 +115,6 @@ const styles = StyleSheet.create({
   },
   card: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -145,32 +136,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
   },
   meta: {
-    color: '#64748B',
     fontSize: 13,
     marginTop: 2,
   },
   emptyState: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginTop: 20,
     padding: 30,
   },
   emptyTitle: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
     marginTop: 10,
   },
   emptyText: {
-    color: '#64748B',
     fontSize: 14,
     marginTop: 4,
     textAlign: 'center',

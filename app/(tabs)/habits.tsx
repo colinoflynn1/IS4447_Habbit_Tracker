@@ -2,6 +2,7 @@ import FormField from '@/components/ui/form-field';
 import InfoTag from '@/components/ui/info-tag';
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
+import { calculateStreak } from '@/lib/streaks';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useContext, useState } from 'react';
@@ -15,11 +16,10 @@ export default function HabitsScreen() {
 
   if (!context) return null;
 
-  const { habits, categories } = context;
+  const { habits, categories, habitLogs, theme } = context;
   const categoryForHabit = (habit: Habit) =>
     categories.find((c) => c.id === habit.categoryId);
 
-  // Filter habits by the search text. Case insensitive match against the name.
   const filtered = search.trim()
     ? habits.filter((h) =>
         h.name.toLowerCase().includes(search.trim().toLowerCase())
@@ -27,7 +27,7 @@ export default function HabitsScreen() {
     : habits;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <ScreenHeader title="Habits" subtitle={`${habits.length} tracked`} />
@@ -48,24 +48,25 @@ export default function HabitsScreen() {
         ) : null}
 
         {habits.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="list-outline" size={40} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No habits yet</Text>
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="list-outline" size={40} color={theme.textMuted} />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No habits yet</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
               Tap Add to create your first habit.
             </Text>
           </View>
         ) : filtered.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={36} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No matches</Text>
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="search-outline" size={36} color={theme.textMuted} />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No matches</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
               No habits found for &quot;{search}&quot;.
             </Text>
           </View>
         ) : (
           filtered.map((habit) => {
             const category = categoryForHabit(habit);
+            const streak = calculateStreak(habitLogs, habit.id);
             return (
               <Pressable
                 key={habit.id}
@@ -74,12 +75,21 @@ export default function HabitsScreen() {
                 onPress={() => router.push(`/habit/${habit.id}`)}
                 style={({ pressed }) => [
                   styles.card,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
                   pressed ? styles.cardPressed : null,
                 ]}
               >
                 <View style={styles.cardRow}>
                   <View style={styles.cardMain}>
-                    <Text style={styles.name}>{habit.name}</Text>
+                    <View style={styles.nameRow}>
+                      <Text style={[styles.name, { color: theme.text }]}>{habit.name}</Text>
+                      {streak > 0 ? (
+                        <View style={styles.streakBadge}>
+                          <Ionicons name="flame" size={11} color="#EA580C" />
+                          <Text style={styles.streakBadgeText}>{streak}d</Text>
+                        </View>
+                      ) : null}
+                    </View>
                     <View style={styles.tags}>
                       {category ? (
                         <InfoTag
@@ -95,7 +105,7 @@ export default function HabitsScreen() {
                       {habit.unit ? <InfoTag label="Unit" value={habit.unit} /> : null}
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                  <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
                 </View>
               </Pressable>
             );
@@ -108,7 +118,6 @@ export default function HabitsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
@@ -123,8 +132,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 10,
@@ -141,11 +148,29 @@ const styles = StyleSheet.create({
   cardMain: {
     flex: 1,
   },
+  nameRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
   name: {
-    color: '#0F172A',
     fontSize: 17,
     fontWeight: '700',
-    marginBottom: 8,
+    marginRight: 8,
+  },
+  streakBadge: {
+    alignItems: 'center',
+    backgroundColor: '#FFF7ED',
+    borderRadius: 999,
+    flexDirection: 'row',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  streakBadgeText: {
+    color: '#EA580C',
+    fontSize: 11,
+    fontWeight: '700',
+    marginLeft: 2,
   },
   tags: {
     flexDirection: 'row',
@@ -153,21 +178,17 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginTop: 20,
     padding: 30,
   },
   emptyTitle: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
     marginTop: 10,
   },
   emptyText: {
-    color: '#64748B',
     fontSize: 14,
     marginTop: 4,
     textAlign: 'center',

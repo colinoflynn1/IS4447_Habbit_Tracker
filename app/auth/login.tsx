@@ -28,14 +28,17 @@ export default function LoginScreen() {
     context.setCurrentUserId(result.userId);
   };
 
+  if (!context) return null;
+  const { theme } = context;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.brandRow}>
-          <View style={styles.iconCircle}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="checkmark-done-outline" size={26} color="#FFFFFF" />
           </View>
-          <Text style={styles.brandName}>Habit Tracker</Text>
+          <Text style={[styles.brandName, { color: theme.text }]}>Habit Tracker</Text>
         </View>
 
         <ScreenHeader title="Welcome back" subtitle="Log in to continue" />
@@ -62,15 +65,15 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>No account yet?</Text>
-          <Link href="/auth/register" style={styles.footerLink}>
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>No account yet?</Text>
+          <Link href="/auth/register" style={[styles.footerLink, { color: theme.primary }]}>
             Register
           </Link>
         </View>
 
-        <View style={styles.demoBox}>
-          <Text style={styles.demoTitle}>Demo account</Text>
-          <Text style={styles.demoText}>
+        <View style={[styles.demoBox, { backgroundColor: theme.primaryFaint, borderColor: theme.primary }]}>
+          <Text style={[styles.demoTitle, { color: theme.primary }]}>Demo account</Text>
+          <Text style={[styles.demoText, { color: theme.text }]}>
             Username: demo{'\n'}Password: demo123
           </Text>
         </View>
@@ -81,7 +84,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -96,7 +98,6 @@ const styles = StyleSheet.create({
   },
   iconCircle: {
     alignItems: 'center',
-    backgroundColor: '#0F766E',
     borderRadius: 22,
     height: 44,
     justifyContent: 'center',
@@ -104,7 +105,6 @@ const styles = StyleSheet.create({
     width: 44,
   },
   brandName: {
-    color: '#0F172A',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -117,31 +117,25 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   footerText: {
-    color: '#64748B',
     fontSize: 14,
     marginRight: 6,
   },
   footerLink: {
-    color: '#0F766E',
     fontSize: 14,
     fontWeight: '700',
   },
   demoBox: {
-    backgroundColor: '#F0FDFA',
-    borderColor: '#0F766E',
     borderRadius: 10,
     borderWidth: 1,
     marginTop: 30,
     padding: 12,
   },
   demoTitle: {
-    color: '#0F766E',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 4,
   },
   demoText: {
-    color: '#475569',
     fontSize: 13,
     lineHeight: 19,
   },

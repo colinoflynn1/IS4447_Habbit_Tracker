@@ -20,7 +20,7 @@ export default function NewCategoryScreen() {
   const [saving, setSaving] = useState(false);
 
   if (!context) return null;
-  const { currentUserId, refreshAll } = context;
+  const { currentUserId, refreshAll, theme } = context;
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -51,7 +51,7 @@ export default function NewCategoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
           <Pressable
@@ -60,8 +60,8 @@ export default function NewCategoryScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
-            <Text style={styles.backLabel}>Back</Text>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
+            <Text style={[styles.backLabel, { color: theme.text }]}>Back</Text>
           </Pressable>
         </View>
 
@@ -78,7 +78,7 @@ export default function NewCategoryScreen() {
 
         <IconPicker value={icon} onChange={setIcon} color={color} />
 
-        <View style={styles.preview}>
+        <View style={[styles.preview, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={[styles.previewIcon, { backgroundColor: color }]}>
             <Ionicons
               name={icon as keyof typeof Ionicons.glyphMap}
@@ -86,7 +86,7 @@ export default function NewCategoryScreen() {
               color="#FFFFFF"
             />
           </View>
-          <Text style={styles.previewLabel}>{name || 'Preview'}</Text>
+          <Text style={[styles.previewLabel, { color: theme.text }]}>{name || 'Preview'}</Text>
         </View>
 
         <View style={styles.actions}>
@@ -102,7 +102,6 @@ export default function NewCategoryScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -119,14 +118,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backLabel: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '600',
   },
   preview: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -143,7 +139,6 @@ const styles = StyleSheet.create({
     width: 40,
   },
   previewLabel: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
   },

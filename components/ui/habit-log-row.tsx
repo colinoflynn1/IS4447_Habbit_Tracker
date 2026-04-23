@@ -1,9 +1,10 @@
 import { db } from '@/db/client';
 import { habitLogs as habitLogsTable } from '@/db/schema';
 import { Ionicons } from '@expo/vector-icons';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { useContext } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Category, Habit, HabitLog } from '@/app/_layout';
+import { AppContext, Category, Habit, HabitLog } from '@/app/_layout';
 
 type Props = {
   habit: Habit;
@@ -14,9 +15,6 @@ type Props = {
   onChange: () => Promise<void>;
 };
 
-// Shows one habit as a row for the Today screen.
-// Boolean habits get a tick/untick button.
-// Count habits get minus and plus buttons that write to the database.
 export default function HabitLogRow({
   habit,
   category,
@@ -25,6 +23,9 @@ export default function HabitLogRow({
   today,
   onChange,
 }: Props) {
+  const context = useContext(AppContext);
+  const theme = context?.theme;
+
   const value = todaysLog?.value ?? 0;
   const isBoolean = habit.metricType === 'boolean';
   const isDone = isBoolean && value > 0;
@@ -33,16 +34,8 @@ export default function HabitLogRow({
   // otherwise I insert a new row.
   const saveValue = async (newValue: number) => {
     if (todaysLog) {
-      if (newValue <= 0 && isBoolean) {
-        // For boolean habits, unticking just deletes the log.
-        await db
-          .delete(habitLogsTable)
-          .where(eq(habitLogsTable.id, todaysLog.id));
-      } else if (newValue <= 0 && !isBoolean) {
-        // For count habits, going below zero also deletes the log.
-        await db
-          .delete(habitLogsTable)
-          .where(eq(habitLogsTable.id, todaysLog.id));
+      if (newValue <= 0) {
+        await db.delete(habitLogsTable).where(eq(habitLogsTable.id, todaysLog.id));
       } else {
         await db
           .update(habitLogsTable)
@@ -65,10 +58,10 @@ export default function HabitLogRow({
   const handleIncrement = () => saveValue(value + 1);
   const handleDecrement = () => saveValue(Math.max(0, value - 1));
 
-  const color = category?.color ?? '#0F766E';
+  const color = category?.color ?? theme?.primary ?? '#0F766E';
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { backgroundColor: theme?.surface ?? '#FFFFFF', borderColor: theme?.border ?? '#E5E7EB' }]}>
       <View style={[styles.iconCircle, { backgroundColor: color }]}>
         <Ionicons
           name={(category?.icon ?? 'ellipse-outline') as keyof typeof Ionicons.glyphMap}
@@ -78,8 +71,8 @@ export default function HabitLogRow({
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name}>{habit.name}</Text>
-        <Text style={styles.sub}>
+        <Text style={[styles.name, { color: theme?.text ?? '#0F172A' }]}>{habit.name}</Text>
+        <Text style={[styles.sub, { color: theme?.textMuted ?? '#64748B' }]}>
           {isBoolean
             ? isDone
               ? 'Done today'
@@ -100,9 +93,7 @@ export default function HabitLogRow({
             { backgroundColor: isDone ? color : 'transparent', borderColor: color },
           ]}
         >
-          {isDone ? (
-            <Ionicons name="checkmark" size={22} color="#FFFFFF" />
-          ) : null}
+          {isDone ? <Ionicons name="checkmark" size={22} color="#FFFFFF" /> : null}
         </Pressable>
       ) : (
         <View style={styles.counterGroup}>
@@ -110,11 +101,18 @@ export default function HabitLogRow({
             accessibilityLabel={`Decrease ${habit.name}`}
             accessibilityRole="button"
             onPress={handleDecrement}
-            style={[styles.counterButton, value <= 0 ? styles.counterDisabled : null]}
+            style={[
+              styles.counterButton,
+              {
+                backgroundColor: theme?.surface ?? '#FFFFFF',
+                borderColor: theme?.inputBorder ?? '#CBD5E1',
+              },
+              value <= 0 ? styles.counterDisabled : null,
+            ]}
           >
-            <Ionicons name="remove" size={18} color="#0F172A" />
+            <Ionicons name="remove" size={18} color={theme?.text ?? '#0F172A'} />
           </Pressable>
-          <Text style={styles.counterValue}>{value}</Text>
+          <Text style={[styles.counterValue, { color: theme?.text ?? '#0F172A' }]}>{value}</Text>
           <Pressable
             accessibilityLabel={`Increase ${habit.name}`}
             accessibilityRole="button"
@@ -132,8 +130,6 @@ export default function HabitLogRow({
 const styles = StyleSheet.create({
   row: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -153,12 +149,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
   },
   sub: {
-    color: '#64748B',
     fontSize: 12,
     marginTop: 2,
   },
@@ -176,8 +170,6 @@ const styles = StyleSheet.create({
   },
   counterButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
     borderRadius: 16,
     borderWidth: 1,
     height: 32,
@@ -188,7 +180,6 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   counterValue: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
     minWidth: 34,

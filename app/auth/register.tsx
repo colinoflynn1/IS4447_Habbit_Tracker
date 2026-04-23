@@ -33,14 +33,17 @@ export default function RegisterScreen() {
     context.setCurrentUserId(result.userId);
   };
 
+  if (!context) return null;
+  const { theme } = context;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.brandRow}>
-          <View style={styles.iconCircle}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="checkmark-done-outline" size={26} color="#FFFFFF" />
           </View>
-          <Text style={styles.brandName}>Habit Tracker</Text>
+          <Text style={[styles.brandName, { color: theme.text }]}>Habit Tracker</Text>
         </View>
 
         <ScreenHeader title="Create account" subtitle="Pick a username and password" />
@@ -74,13 +77,15 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Already have an account?</Text>
-          <Link href="/auth/login" style={styles.footerLink}>
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>
+            Already have an account?
+          </Text>
+          <Link href="/auth/login" style={[styles.footerLink, { color: theme.primary }]}>
             Log in
           </Link>
         </View>
 
-        <Text style={styles.note}>
+        <Text style={[styles.note, { color: theme.textMuted }]}>
           Your account is stored only on this device. No data leaves your phone.
         </Text>
       </ScrollView>
@@ -90,7 +95,6 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
   },
@@ -105,7 +109,6 @@ const styles = StyleSheet.create({
   },
   iconCircle: {
     alignItems: 'center',
-    backgroundColor: '#0F766E',
     borderRadius: 22,
     height: 44,
     justifyContent: 'center',
@@ -113,7 +116,6 @@ const styles = StyleSheet.create({
     width: 44,
   },
   brandName: {
-    color: '#0F172A',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -126,17 +128,14 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   footerText: {
-    color: '#64748B',
     fontSize: 14,
     marginRight: 6,
   },
   footerLink: {
-    color: '#0F766E',
     fontSize: 14,
     fontWeight: '700',
   },
   note: {
-    color: '#94A3B8',
     fontSize: 12,
     marginTop: 30,
     textAlign: 'center',

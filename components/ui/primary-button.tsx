@@ -1,4 +1,6 @@
+import { useContext } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { AppContext } from '@/app/_layout';
 
 type Props = {
   label: string;
@@ -13,6 +15,30 @@ export default function PrimaryButton({
   compact = false,
   variant = 'primary',
 }: Props) {
+  const context = useContext(AppContext);
+  const theme = context?.theme;
+
+  const bg =
+    variant === 'secondary'
+      ? theme?.surface ?? '#F8FAFC'
+      : variant === 'danger'
+        ? theme?.dangerBg ?? '#FEF2F2'
+        : theme?.primary ?? '#0F766E';
+
+  const borderColor =
+    variant === 'secondary'
+      ? theme?.inputBorder ?? '#94A3B8'
+      : variant === 'danger'
+        ? theme?.dangerBorder ?? '#FCA5A5'
+        : 'transparent';
+
+  const labelColor =
+    variant === 'secondary'
+      ? theme?.text ?? '#0F172A'
+      : variant === 'danger'
+        ? theme?.danger ?? '#7F1D1D'
+        : theme?.textOnPrimary ?? '#FFFFFF';
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -20,20 +46,12 @@ export default function PrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        variant === 'secondary' ? styles.secondary : null,
-        variant === 'danger' ? styles.danger : null,
+        { backgroundColor: bg, borderColor, borderWidth: variant === 'primary' ? 0 : 1 },
         compact ? styles.compact : null,
         pressed ? styles.pressed : null,
       ]}
     >
-      <Text
-        style={[
-          styles.label,
-          variant === 'secondary' ? styles.secondaryLabel : null,
-          variant === 'danger' ? styles.dangerLabel : null,
-          compact ? styles.compactLabel : null,
-        ]}
-      >
+      <Text style={[styles.label, compact ? styles.compactLabel : null, { color: labelColor }]}>
         {label}
       </Text>
     </Pressable>
@@ -43,20 +61,9 @@ export default function PrimaryButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: '#0F766E',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 11,
-  },
-  secondary: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#94A3B8',
-    borderWidth: 1,
-  },
-  danger: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
-    borderWidth: 1,
   },
   compact: {
     alignSelf: 'flex-start',
@@ -68,15 +75,8 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
-  },
-  secondaryLabel: {
-    color: '#0F172A',
-  },
-  dangerLabel: {
-    color: '#7F1D1D',
   },
   compactLabel: {
     fontSize: 13,

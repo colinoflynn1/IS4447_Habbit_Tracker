@@ -1,6 +1,7 @@
 import HabitLogRow from '@/components/ui/habit-log-row';
 import ScreenHeader from '@/components/ui/screen-header';
 import { todayString } from '@/lib/date-utils';
+import { calculateStreak } from '@/lib/streaks';
 import { Ionicons } from '@expo/vector-icons';
 import { useContext } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,15 +12,13 @@ export default function TodayScreen() {
   const context = useContext(AppContext);
   if (!context) return null;
 
-  const { habits, habitLogs, categories, currentUserId, refreshAll } = context;
+  const { habits, habitLogs, categories, currentUserId, refreshAll, theme } = context;
   const today = todayString();
 
-  // Map of today's logs keyed by habit id so each row can look up its own log.
   const todaysLogByHabit = new Map(
     habitLogs.filter((l) => l.date === today).map((l) => [l.habitId, l])
   );
 
-  // How many habits have been logged today (boolean done or count greater than 0).
   const loggedCount = habits.filter((h) => {
     const log = todaysLogByHabit.get(h.id);
     return log && log.value > 0;
@@ -28,6 +27,16 @@ export default function TodayScreen() {
   const completionPct =
     habits.length > 0 ? Math.round((loggedCount / habits.length) * 100) : 0;
 
+  // Find the longest current streak across all habits.
+  const allStreaks = habits.map((h) => ({
+    habit: h,
+    streak: calculateStreak(habitLogs, h.id),
+  }));
+  const longestStreak = allStreaks.reduce(
+    (best, s) => (s.streak > best.streak ? s : best),
+    { habit: null as any, streak: 0 }
+  );
+
   const dateLabel = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
@@ -35,32 +44,48 @@ export default function TodayScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader title="Today" subtitle={dateLabel} />
 
-        <View style={styles.summaryCard}>
+        <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.summaryRow}>
             <View>
-              <Text style={styles.summaryTitle}>Daily progress</Text>
-              <Text style={styles.summarySub}>
+              <Text style={[styles.summaryTitle, { color: theme.text }]}>Daily progress</Text>
+              <Text style={[styles.summarySub, { color: theme.textMuted }]}>
                 {loggedCount} of {habits.length} habits logged
               </Text>
             </View>
-            <Text style={styles.summaryPct}>{completionPct}%</Text>
+            <Text style={[styles.summaryPct, { color: theme.primary }]}>{completionPct}%</Text>
           </View>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${completionPct}%` }]} />
+          <View style={[styles.track, { backgroundColor: theme.border }]}>
+            <View style={[styles.fill, { width: `${completionPct}%`, backgroundColor: theme.primary }]} />
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Log your habits</Text>
+        {longestStreak.streak > 0 ? (
+          <View style={[styles.streakCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.streakIconCircle}>
+              <Ionicons name="flame" size={20} color="#FFFFFF" />
+            </View>
+            <View style={styles.streakText}>
+              <Text style={[styles.streakNum, { color: theme.text }]}>
+                {longestStreak.streak}-day streak
+              </Text>
+              <Text style={[styles.streakSub, { color: theme.textMuted }]}>
+                Keep going with {longestStreak.habit?.name}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Log your habits</Text>
 
         {habits.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="add-circle-outline" size={40} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No habits yet</Text>
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="add-circle-outline" size={40} color={theme.textMuted} />
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No habits yet</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>
               Head to the Habits tab and add one to start tracking.
             </Text>
           </View>
@@ -88,7 +113,6 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
@@ -97,11 +121,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 18,
+    marginBottom: 12,
     padding: 14,
   },
   summaryRow: {
@@ -111,55 +133,73 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   summaryTitle: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
   },
   summarySub: {
-    color: '#64748B',
     fontSize: 12,
     marginTop: 2,
   },
   summaryPct: {
-    color: '#0F766E',
     fontSize: 24,
     fontWeight: '700',
   },
   track: {
-    backgroundColor: '#E5E7EB',
     borderRadius: 6,
     height: 10,
     overflow: 'hidden',
     width: '100%',
   },
   fill: {
-    backgroundColor: '#0F766E',
     borderRadius: 6,
     height: '100%',
   },
+  streakCard: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginBottom: 18,
+    padding: 12,
+  },
+  streakIconCircle: {
+    alignItems: 'center',
+    backgroundColor: '#EA580C',
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    marginRight: 12,
+    width: 36,
+  },
+  streakText: {
+    flex: 1,
+  },
+  streakNum: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  streakSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   sectionTitle: {
-    color: '#0F172A',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 10,
   },
   emptyState: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginTop: 20,
     padding: 30,
   },
   emptyTitle: {
-    color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
     marginTop: 10,
   },
   emptyText: {
-    color: '#64748B',
     fontSize: 14,
     marginTop: 4,
     textAlign: 'center',

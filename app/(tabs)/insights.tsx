@@ -19,10 +19,8 @@ export default function InsightsScreen() {
   const [mode, setMode] = useState<ViewMode>('week');
 
   if (!context) return null;
-  const { habitLogs, habits, categories } = context;
+  const { habitLogs, habits, categories, theme } = context;
 
-  // Pick which dates to show based on the selected mode.
-  // Day view = last 7 days, Week = current Mon to Sun, Month = current month
   let dates: string[];
   let labelMode: 'day' | 'date';
   if (mode === 'day') {
@@ -32,7 +30,6 @@ export default function InsightsScreen() {
     dates = currentWeekDates();
     labelMode = 'day';
   } else {
-    // For month I only show every few days otherwise the chart is unreadable
     const all = currentMonthDates();
     const step = Math.max(1, Math.floor(all.length / 10));
     dates = all.filter((_, i) => i % step === 0);
@@ -44,19 +41,13 @@ export default function InsightsScreen() {
     value: countLogsByDate(habitLogs, date),
   }));
 
-  // Total logs in the selected period
   const totalLogs = chartData.reduce((sum, d) => sum + d.value, 0);
-
-  // Average per day
   const average = dates.length > 0 ? Math.round(totalLogs / dates.length) : 0;
-
-  // Best day in the period
   const bestDay = chartData.reduce(
     (best, d) => (d.value > best.value ? d : best),
     { label: '-', value: 0 }
   );
 
-  // Per category totals so I can show a simple breakdown.
   const dateSet = new Set(dates);
   const categoryStats = categories.map((category) => {
     const habitsInCategory = habits.filter((h) => h.categoryId === category.id);
@@ -75,15 +66,11 @@ export default function InsightsScreen() {
   const maxCategoryTotal = Math.max(...categoryStats.map((c) => c.total), 1);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader
-          title="Insights"
-          subtitle="See how your habits are tracking"
-        />
+        <ScreenHeader title="Insights" subtitle="See how your habits are tracking" />
 
-        {/* Mode toggle */}
-        <View style={styles.toggleRow}>
+        <View style={[styles.toggleRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           {(['day', 'week', 'month'] as const).map((option) => (
             <Pressable
               key={option}
@@ -92,13 +79,13 @@ export default function InsightsScreen() {
               onPress={() => setMode(option)}
               style={[
                 styles.toggleButton,
-                mode === option ? styles.toggleButtonActive : null,
+                mode === option ? { backgroundColor: theme.primary } : null,
               ]}
             >
               <Text
                 style={[
                   styles.toggleLabel,
-                  mode === option ? styles.toggleLabelActive : null,
+                  { color: mode === option ? theme.textOnPrimary : theme.textMuted },
                 ]}
               >
                 {option === 'day' ? 'Last 7 days' : option === 'week' ? 'This week' : 'This month'}
@@ -107,52 +94,45 @@ export default function InsightsScreen() {
           ))}
         </View>
 
-        {/* Stats summary */}
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{totalLogs}</Text>
-            <Text style={styles.statLabel}>Total logs</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{average}</Text>
-            <Text style={styles.statLabel}>Avg per day</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{bestDay.value}</Text>
-            <Text style={styles.statLabel}>Best ({bestDay.label})</Text>
-          </View>
+          {[
+            { value: totalLogs, label: 'Total logs' },
+            { value: average, label: 'Avg per day' },
+            { value: bestDay.value, label: `Best (${bestDay.label})` },
+          ].map((s, i) => (
+            <View key={i} style={[styles.statBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.statValue, { color: theme.primary }]}>{s.value}</Text>
+              <Text style={[styles.statLabel, { color: theme.textMuted }]}>{s.label}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Bar chart card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Habits logged per day</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>Habits logged per day</Text>
           {totalLogs === 0 ? (
-            <Text style={styles.emptyChartText}>
+            <Text style={[styles.emptyChartText, { color: theme.textMuted }]}>
               No logs yet for this period. Start logging from the Today tab.
             </Text>
           ) : (
-            <BarChart data={chartData} height={170} color="#0F766E" />
+            <BarChart data={chartData} height={170} color={theme.primary} />
           )}
         </View>
 
-        {/* Category breakdown card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>By category</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>By category</Text>
           {categoryStats.every((c) => c.total === 0) ? (
-            <Text style={styles.emptyChartText}>
+            <Text style={[styles.emptyChartText, { color: theme.textMuted }]}>
               No category data yet for this period.
             </Text>
           ) : (
             categoryStats.map((cat) => (
               <View key={cat.id} style={styles.categoryRow}>
                 <View style={styles.categoryHeader}>
-                  <View
-                    style={[styles.categoryDot, { backgroundColor: cat.color }]}
-                  />
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                  <Text style={styles.categoryCount}>{cat.total}</Text>
+                  <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
+                  <Text style={[styles.categoryName, { color: theme.text }]}>{cat.name}</Text>
+                  <Text style={[styles.categoryCount, { color: theme.textMuted }]}>{cat.total}</Text>
                 </View>
-                <View style={styles.categoryTrack}>
+                <View style={[styles.categoryTrack, { backgroundColor: theme.border }]}>
                   <View
                     style={[
                       styles.categoryFill,
@@ -174,7 +154,6 @@ export default function InsightsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#F8FAFC',
     flex: 1,
     paddingHorizontal: 18,
     paddingTop: 10,
@@ -183,8 +162,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   toggleRow: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 10,
     borderWidth: 1,
     flexDirection: 'row',
@@ -197,16 +174,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
   },
-  toggleButtonActive: {
-    backgroundColor: '#0F766E',
-  },
   toggleLabel: {
-    color: '#475569',
     fontSize: 13,
     fontWeight: '600',
-  },
-  toggleLabelActive: {
-    color: '#FFFFFF',
   },
   statsRow: {
     flexDirection: 'row',
@@ -215,40 +185,32 @@ const styles = StyleSheet.create({
   },
   statBox: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
     paddingVertical: 12,
   },
   statValue: {
-    color: '#0F766E',
     fontSize: 20,
     fontWeight: '700',
   },
   statLabel: {
-    color: '#64748B',
     fontSize: 11,
     marginTop: 2,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 14,
     padding: 14,
   },
   cardTitle: {
-    color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 10,
   },
   emptyChartText: {
-    color: '#64748B',
     fontSize: 13,
     paddingVertical: 20,
     textAlign: 'center',
@@ -268,18 +230,15 @@ const styles = StyleSheet.create({
     width: 10,
   },
   categoryName: {
-    color: '#0F172A',
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
   },
   categoryCount: {
-    color: '#475569',
     fontSize: 13,
     fontWeight: '600',
   },
   categoryTrack: {
-    backgroundColor: '#E5E7EB',
     borderRadius: 4,
     height: 8,
     overflow: 'hidden',
