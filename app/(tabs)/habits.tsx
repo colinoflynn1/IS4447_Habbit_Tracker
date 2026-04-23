@@ -1,20 +1,30 @@
+import FormField from '@/components/ui/form-field';
 import InfoTag from '@/components/ui/info-tag';
 import PrimaryButton from '@/components/ui/primary-button';
 import ScreenHeader from '@/components/ui/screen-header';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppContext, Habit } from '../_layout';
 
 export default function HabitsScreen() {
   const context = useContext(AppContext);
+  const [search, setSearch] = useState('');
+
   if (!context) return null;
 
   const { habits, categories } = context;
   const categoryForHabit = (habit: Habit) =>
     categories.find((c) => c.id === habit.categoryId);
+
+  // Filter habits by the search text. Case insensitive match against the name.
+  const filtered = search.trim()
+    ? habits.filter((h) =>
+        h.name.toLowerCase().includes(search.trim().toLowerCase())
+      )
+    : habits;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -28,6 +38,15 @@ export default function HabitsScreen() {
           />
         </View>
 
+        {habits.length > 0 ? (
+          <FormField
+            label="Search"
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Type to filter habits"
+          />
+        ) : null}
+
         {habits.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="list-outline" size={40} color="#CBD5E1" />
@@ -36,8 +55,16 @@ export default function HabitsScreen() {
               Tap Add to create your first habit.
             </Text>
           </View>
+        ) : filtered.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={36} color="#CBD5E1" />
+            <Text style={styles.emptyTitle}>No matches</Text>
+            <Text style={styles.emptyText}>
+              No habits found for &quot;{search}&quot;.
+            </Text>
+          </View>
         ) : (
-          habits.map((habit) => {
+          filtered.map((habit) => {
             const category = categoryForHabit(habit);
             return (
               <Pressable

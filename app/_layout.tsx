@@ -1,5 +1,3 @@
-import { Stack } from 'expo-router';
-import { createContext, useEffect, useState } from 'react';
 import { db } from '@/db/client';
 import {
   categories as categoriesTable,
@@ -9,8 +7,10 @@ import {
   users as usersTable,
 } from '@/db/schema';
 import { seedIfEmpty } from '@/db/seed';
+import { getStoredUserId } from '@/lib/auth';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { createContext, useEffect, useState } from 'react';
 
-// Types that match the Drizzle schema. Screens import these alongside the context.
 export type User = {
   id: number;
   username: string;
@@ -66,6 +66,7 @@ type AppContextType = {
   targets: Target[];
   setTargets: React.Dispatch<React.SetStateAction<Target[]>>;
   refreshAll: () => Promise<void>;
+  booted: boolean;
 };
 
 export const AppContext = createContext<AppContextType | null>(null);
@@ -76,36 +77,70 @@ export default function RootLayout() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [habitLogs, setHabitLogs] = useState<HabitLog[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
+  const [booted, setBooted] = useState(false);
 
-  // Reloads every table from the database. I call this after any insert,
-  // update or delete so the UI stays in sync with what is stored.
+  const router = useRouter();
+  const segments = useSegments();
+
+  // Reload everything from the database. Filter by current user so users only
+  // see their own data.
   const refreshAll = async () => {
-    const [cats, hbs, logs, tgts, usrs] = await Promise.all([
+    const [cats, hbs, logs, tgts] = await Promise.all([
       db.select().from(categoriesTable),
       db.select().from(habitsTable),
       db.select().from(habitLogsTable),
       db.select().from(targetsTable),
-      db.select().from(usersTable),
     ]);
-    setCategories(cats);
-    setHabits(hbs);
-    setHabitLogs(logs);
-    setTargets(tgts);
-    // Auto-login the demo user for now. This is a temporary shortcut until I
-    // build the real login screens.
-    if (currentUserId === null && usrs.length > 0) {
-      setCurrentUserId(usrs[0].id);
-    }
+    setCategories(cats.filter((c) => c.userId === currentUserId));
+    setHabits(hbs.filter((h) => h.userId === currentUserId));
+    setHabitLogs(logs.filter((l) => l.userId === currentUserId));
+    setTargets(tgts.filter((t) => t.userId === currentUserId));
   };
 
+  // Boot once - seed if empty and read stored session.
   useEffect(() => {
     const boot = async () => {
       await seedIfEmpty();
-      await refreshAll();
+      const storedId = getStoredUserId();
+      if (storedId !== null) {
+        // Confirm the user still exists before setting it
+        const allUsers = await db.select().from(usersTable);
+        const exists = allUsers.find((u) => u.id === storedId);
+        if (exists) {
+          setCurrentUserId(storedId);
+        }
+      }
+      setBooted(true);
     };
     void boot();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Whenever currentUserId changes, refresh data.
+  useEffect(() => {
+    if (currentUserId !== null) {
+      void refreshAll();
+    } else {
+      // No user, clear everything
+      setCategories([]);
+      setHabits([]);
+      setHabitLogs([]);
+      setTargets([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId]);
+
+  // Auth gate. If we have booted and there is no user, push the user to the
+  // login screen. If we have a user but they are on the login screen, send them
+  // to the tabs.
+  useEffect(() => {
+    if (!booted) return;
+    const inAuthGroup = segments[0] === 'auth';
+    if (currentUserId === null && !inAuthGroup) {
+      router.replace('/auth/login');
+    } else if (currentUserId !== null && inAuthGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [booted, currentUserId, segments, router]);
 
   return (
     <AppContext.Provider
@@ -121,6 +156,7 @@ export default function RootLayout() {
         targets,
         setTargets,
         refreshAll,
+        booted,
       }}
     >
       <Stack screenOptions={{ headerShown: false }} />
